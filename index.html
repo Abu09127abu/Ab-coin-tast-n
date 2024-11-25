@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claim AB Coin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: black;
+      color: white;
+      text-align: center;
+      padding: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #coinImage {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+    }
+    #loadingDots {
+      font-size: 30px;
+      letter-spacing: 5px;
+      margin-top: 20px;
+    }
+    #reward {
+      margin-top: 20px;
+      font-size: 24px;
+    }
+    #claimButton {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: white;
+      color: black;
+      border: 2px solid black;
+      cursor: pointer;
+      display: none;
+    }
+    #claimButton:hover {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">
+    <img src="coin.png" id="coinImage" alt="Coin">
+    <div id="loadingDots">.</div>
+    <div id="reward"></div>
+    <button id="claimButton">Claim Reward</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getDatabase, ref, set, update, get } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzxSL6N7FOXC8FuM6v11qJRODLIC4TJXE",
+      authDomain: "app-telegram-f4101.firebaseapp.com",
+      databaseURL: "https://app-telegram-f4101-default-rtdb.firebaseio.com",
+      projectId: "app-telegram-f4101",
+      storageBucket: "app-telegram-f4101.firebasestorage.app",
+      messagingSenderId: "67113105635",
+      appId: "1:67113105635:web:2d6049641a5b6ebca6edd6"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Fetch user data from URL params (userId)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+
+    // If no userId is found, set as guest user
+    if (!userId) {
+      const guestUserId = `guestuser${Math.floor(Math.random() * 10000)}`;
+      window.location.href = `${window.location.href}?userId=${guestUserId}`;
+    }
+
+    // Function to fetch user data from Firebase
+    async function fetchUserData(userId) {
+      const userRef = ref(db, `users/${userId}`);
+      const snapshot = await get(userRef);
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        document.getElementById("reward").textContent = `Hello ${userData.name}, AB Coin: ${userData.abcoin}`;
+      } else {
+        console.log("User not found in Firebase database!");
+      }
+    }
+
+    fetchUserData(userId);
+
+    // Simulate loading animation for the coin claim process
+    const loadingDots = document.getElementById("loadingDots");
+    let dotCount = 0;
+    const loadingInterval = setInterval(() => {
+      dotCount = (dotCount % 3) + 1;
+      loadingDots.textContent = ".".repeat(dotCount);
+    }, 500);
+
+    setTimeout(() => {
+      clearInterval(loadingInterval);
+      claimReward(userId);
+    }, Math.random() * 2000 + 3000);
+
+    // Function to claim reward and update Firebase with the new AB Coin value
+    async function claimReward(userId) {
+      const reward = Math.floor(Math.random() * (7000 - 1000 + 1)) + 1000;
+      document.getElementById("reward").textContent = `You have earned ${reward} AB Coin!`;
+
+      const claimButton = document.getElementById("claimButton");
+      claimButton.style.display = "inline-block";
+
+      claimButton.addEventListener("click", async () => {
+        const userRef = ref(db, `users/${userId}`);
+        const snapshot = await get(userRef);
+        const currentAbcoin = snapshot.exists() ? snapshot.val().abcoin : 0;
+        const newAbcoin = currentAbcoin + reward;
+
+        await update(ref(db, `users/${userId}`), { abcoin: newAbcoin });
+        window.location.href = "home.html";  // Redirect to home page after claiming
+      });
+    }
+  </script>
+</body>
+</html>
